@@ -6,16 +6,28 @@ import scrapy
 # import openpyxl module
 import openpyxl
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import os
 
 def download(url: str,fileName:str, dest_folder: str):
+  print(url)
   if not os.path.exists(dest_folder):
       os.makedirs(dest_folder)  # create folder if it does not exist
 
   filename = fileName or url.split('/')[-1].replace(" ", "_")  # be careful with file names
   file_path = os.path.join(dest_folder, filename)
   
-  r = requests.get(url, stream=True)
+  # ====================
+  session = requests.Session()
+  retry = Retry(connect=3, backoff_factor=0.5)
+  adapter = HTTPAdapter(max_retries=retry)
+  session.mount('http://', adapter)
+  session.mount('https://', adapter)
+  r = session.get(url)
+  # ====================
+  
+  # r = requests.get(url, stream=True)
   if r.ok:
       print("saving to", os.path.abspath(file_path))
       with open(file_path, 'wb') as f:
@@ -57,14 +69,16 @@ class XlsReaderSpider(scrapy.Spider):
             "name" : str(j)+'.['+rowName+']'+filename,
             "url" : sheet_obj.cell(row = j, column = i).value.strip()
           }
-          if(len(urlObj['url']) == 0):
+          
+          if(len(urlObj['url']) == 0 or j == 1):
             continue
           elif(urlObj['url'].rfind("http") > -1): 
             urls.append(urlObj)
           else:
             urlObj['url'] = baseUrl+urlObj['url']
             urls.append(urlObj)
-            
+          
+          print('i= ',i,' j= ',j,' ',urlObj['url'])  
         
         
     
