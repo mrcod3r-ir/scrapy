@@ -62,10 +62,10 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'imageDownloader.pipelines.ImagedownloaderPipeline': 300,
-#}
-
+ITEM_PIPELINES = {
+  'imageDownloader.pipelines.ImagedownloaderPipeline': 1,
+}
+IMAGES_STORE = r"G:\\mrCod3r\\projects\\15.scrapper\\imageDownloader\\images" 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
