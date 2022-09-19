@@ -1,5 +1,7 @@
+from asyncio.windows_events import NULL
 from fileinput import filename
 from importlib.resources import path
+from pickle import FALSE
 from time import sleep
 from turtle import width
 import scrapy
@@ -10,12 +12,26 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import os
 
+def pathExtractor(path: str):
+  baseUrls = ['http://diet2.gosnalban.com/back/storage/app/public/','https://Core.zirehapp.com']
+  Path = path
+  for url in baseUrls:
+    if Path.find(url) > -1:
+      Path = Path.lstrip(url)
+    Path = Path.lstrip('/')
+  
+  return Path.split('/')
+
+  
 def download(url: str,fileName:str, dest_folder: str):
-  print(url)
   if not os.path.exists(dest_folder):
       os.makedirs(dest_folder)  # create folder if it does not exist
 
   filename = fileName or url.split('/')[-1].replace(" ", "_")  # be careful with file names
+  pathList = pathExtractor(url)
+  if(len(pathList) > 1):
+    print(len(pathList) , pathList)
+  return
   file_path = os.path.join(dest_folder, filename)
   
   # ====================
@@ -27,7 +43,6 @@ def download(url: str,fileName:str, dest_folder: str):
   r = session.get(url)
   # ====================
   
-  # r = requests.get(url, stream=True)
   if r.ok:
       print("saving to", os.path.abspath(file_path))
       with open(file_path, 'wb') as f:
@@ -66,23 +81,19 @@ class XlsReaderSpider(scrapy.Spider):
           rowName = sheet_obj.cell(row = j, column = nameIdx).value.strip()
           filename = sheet_obj.cell(row = j, column = i).value.strip().split('/')[-1].replace(" ", "_")
           urlObj = {
-            "name" : str(j)+'.['+rowName+']'+filename,
-            "url" : sheet_obj.cell(row = j, column = i).value.strip()
+            "name" : str(j)+filename,
+            "url" : sheet_obj.cell(row = j, column = i).value.strip(),
+            "path":NULL
           }
-          
           if(len(urlObj['url']) == 0 or j == 1):
             continue
           elif(urlObj['url'].rfind("http") > -1): 
+            urlObj['path'] = urlObj['url']
             urls.append(urlObj)
           else:
+            urlObj['path'] = urlObj['url']
             urlObj['url'] = baseUrl+urlObj['url']
             urls.append(urlObj)
           
-          print('i= ',i,' j= ',j,' ',urlObj['url'])  
-        
-        
-    
-
-  # download(urls[3]['url'],urls[3]['name'],imagesDir )
   for item in urls:
     download(item['url'],item['name'],imagesDir )
