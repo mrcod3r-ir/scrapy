@@ -1,6 +1,7 @@
 from asyncio.windows_events import NULL
 from fileinput import filename
 from importlib.resources import path
+import pathlib
 from pickle import FALSE
 from time import sleep
 from turtle import width
@@ -28,10 +29,7 @@ def download(url: str,fileName:str, dest_folder: str):
       os.makedirs(dest_folder)  # create folder if it does not exist
 
   filename = fileName or url.split('/')[-1].replace(" ", "_")  # be careful with file names
-  pathList = pathExtractor(url)
-  if(len(pathList) > 1):
-    print(len(pathList) , pathList)
-  return
+
   file_path = os.path.join(dest_folder, filename)
   
   # ====================
@@ -85,6 +83,8 @@ class XlsReaderSpider(scrapy.Spider):
             "url" : sheet_obj.cell(row = j, column = i).value.strip(),
             "path":NULL
           }
+        
+            
           if(len(urlObj['url']) == 0 or j == 1):
             continue
           elif(urlObj['url'].rfind("http") > -1): 
@@ -96,4 +96,11 @@ class XlsReaderSpider(scrapy.Spider):
             urls.append(urlObj)
           
   for item in urls:
-    download(item['url'],item['name'],imagesDir )
+    pathList = pathExtractor(item['url'])
+    Path = ''
+    if(len(pathList) > 1):
+      for path in pathList:
+        if (len(pathList) - 1) != pathList.index(path):
+          Path += '\\\\'+ path
+      # print(imagesDir+Path)
+    download(item['url'],item['name'],imagesDir+Path )
