@@ -29,7 +29,6 @@ def download(url: str,fileName:str, dest_folder: str):
       os.makedirs(dest_folder)  # create folder if it does not exist
 
   filename = fileName or url.split('/')[-1].replace(" ", "_")  # be careful with file names
-
   file_path = os.path.join(dest_folder, filename)
   
   # ====================
@@ -79,7 +78,7 @@ class XlsReaderSpider(scrapy.Spider):
           rowName = sheet_obj.cell(row = j, column = nameIdx).value.strip()
           filename = sheet_obj.cell(row = j, column = i).value.strip().split('/')[-1].replace(" ", "_")
           urlObj = {
-            "name" : str(j)+filename,
+            "name" : filename,
             "url" : sheet_obj.cell(row = j, column = i).value.strip(),
             "path":NULL
           }
