@@ -12,6 +12,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import os
+from PIL import Image
+
 
 def pathExtractor(path: str):
   baseUrls = ['http://diet2.gosnalban.com/back/storage/app/public/','https://Core.zirehapp.com']
@@ -20,17 +22,15 @@ def pathExtractor(path: str):
     if Path.find(url) > -1:
       Path = Path.lstrip(url)
     Path = Path.lstrip('/')
-  
   return Path.split('/')
 
   
-def download(url: str,fileName:str, dest_folder: str):
+def download(url: str,fileName:str, dest_folder: str,isThumnail: bool):
   if not os.path.exists(dest_folder):
       os.makedirs(dest_folder)  # create folder if it does not exist
 
   filename = fileName or url.split('/')[-1].replace(" ", "_")  # be careful with file names
   file_path = os.path.join(dest_folder, filename)
-  
   # ====================
   session = requests.Session()
   retry = Retry(connect=3, backoff_factor=0.5)
@@ -48,6 +48,11 @@ def download(url: str,fileName:str, dest_folder: str):
                   f.write(chunk)
                   f.flush()
                   os.fsync(f.fileno())
+      if(isThumnail):
+        img = Image.open(os.path.abspath(file_path))
+        img.thumbnail((80,80),Image.ANTIALIAS)
+        img.save(os.path.abspath(file_path), quality=100)
+
   else:  # HTTP status code 4XX/5XX
       print("Download failed: status code {}\n{}".format(r.status_code, r.text))
 
@@ -68,11 +73,14 @@ class XlsReaderSpider(scrapy.Spider):
   baseUrl = 'https://Core.zirehapp.com'
   urls = []
   nameIdx = int
+  isThumbnail = False
   # Loop will print all columns name
   for i in range(1, max_col + 1):
       cell_obj = sheet_obj.cell(row = 1, column = i)
       if(cell_obj.value == 'name'):
         nameIdx = cell_obj.col_idx
+      if( cell_obj.value == 'thumbnail'):
+        isThumbnail = True
       if(cell_obj.value == 'banner' or cell_obj.value == 'thumbnail'):
         for j in range(1,max_row+1):
           rowName = sheet_obj.cell(row = j, column = nameIdx).value.strip()
@@ -80,7 +88,8 @@ class XlsReaderSpider(scrapy.Spider):
           urlObj = {
             "name" : filename,
             "url" : sheet_obj.cell(row = j, column = i).value.strip(),
-            "path":NULL
+            "path":NULL,
+            "isThumbnail":isThumbnail
           }
         
             
@@ -94,12 +103,18 @@ class XlsReaderSpider(scrapy.Spider):
             urlObj['url'] = baseUrl+urlObj['url']
             urls.append(urlObj)
           
-  for item in urls:
+  for item in urls:    
     pathList = pathExtractor(item['url'])
+    
+    if(item['isThumbnail']== True):
+      pathList.insert(0, "thumbnail")  
+
     Path = ''
     if(len(pathList) > 1):
       for path in pathList:
         if (len(pathList) - 1) != pathList.index(path):
           Path += '\\\\'+ path
-      # print(imagesDir+Path)
-    download(item['url'],item['name'],imagesDir+Path )
+
+
+    print(imagesDir+Path)
+    download(item['url'],item['name'],imagesDir+Path,item['isThumbnail'])
